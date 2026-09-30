@@ -1,0 +1,754 @@
+/* ================================================================
+   XEON NOTEPAD — Editor Styles  (editor.css)
+   Rich text editor, toolbar, download dropdown
+   ================================================================ */
+
+/* ── Editor shell ─────────────────────────────────────────────── */
+.editor-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────── */
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    min-height: 46px;
+    position: relative;
+    z-index: 50;
+    transition: background var(--transition-slow), border-color var(--transition-slow);
+}
+
+.toolbar-scroll-area {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex: 1;
+    min-width: 0;
+    padding: 2px 0;
+}
+.toolbar-scroll-area::-webkit-scrollbar {
+    display: none;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.toolbar-end-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 4px;
+    flex-shrink: 0;
+}
+
+/* Toolbar button */
+.toolbar-btn {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    background: none;
+    position: relative;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+    text-decoration: none !important;
+    flex-shrink: 0;
+}
+.toolbar-btn svg { width: 16px; height: 16px; }
+.toolbar-btn:hover { background: var(--surface-2); color: var(--primary); }
+.toolbar-btn.active {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border-color: rgba(255,128,0,0.25);
+}
+
+/* Tooltip via CSS */
+.toolbar-btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 7px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 9px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 20;
+}
+.toolbar-btn[data-tooltip]:hover::after { opacity: 1; }
+
+/* Heading select */
+.toolbar-select {
+    height: 32px;
+    padding: 0 10px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12.5px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: border-color var(--transition);
+}
+.toolbar-select:focus { border-color: var(--primary); outline: none; }
+.toolbar-select option { background: var(--bg); color: var(--text); }
+
+/* Color picker */
+.color-picker-wrapper {
+    position: relative;
+    cursor: pointer;
+}
+.color-indicator {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px; height: 3px;
+    border-radius: 2px;
+    background: #000;
+    transition: background var(--transition);
+    pointer-events: none;
+}
+.color-picker-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 100%; height: 100%;
+    cursor: pointer;
+    padding: 0;
+    border: none;
+}
+
+/* Download dropdown */
+.dropdown-wrapper { position: relative; }
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    min-width: 165px;
+    overflow: hidden;
+    z-index: 300;
+    display: none;
+    animation: ddIn 0.14s ease;
+}
+.dropdown-menu.open { display: block; }
+
+@keyframes ddIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    font-family: var(--font);
+    text-align: left;
+    text-decoration: none !important;
+    transition: background var(--transition), color var(--transition);
+}
+.dropdown-item:hover { background: var(--primary-lighter); color: var(--primary); }
+.dropdown-item svg { flex-shrink: 0; color: var(--text-muted); transition: color var(--transition); }
+.dropdown-item:hover svg { color: var(--primary); }
+
+/* ── Editor body ──────────────────────────────────────────────── */
+.editor-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 28px 44px 20px;
+}
+
+/* Title input */
+.editor-title-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 27px;
+    font-weight: 700;
+    font-family: var(--font);
+    line-height: 1.3;
+    resize: none;
+    outline: none;
+    padding: 0;
+    margin-bottom: 6px;
+    transition: color var(--transition-slow);
+}
+.editor-title-input::placeholder { color: var(--text-placeholder); }
+
+/* Meta info */
+.editor-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+.editor-meta span { display: flex; align-items: center; gap: 5px; }
+
+/* Divider */
+.editor-separator {
+    height: 1px;
+    background: var(--border);
+    margin-bottom: 20px;
+    flex-shrink: 0;
+    transition: background var(--transition-slow);
+}
+
+/* Contenteditable area */
+.editor-content {
+    flex: 1;
+    outline: none;
+    color: var(--text);
+    font-size: 15px;
+    font-family: var(--font);
+    line-height: 1.8;
+    overflow-y: auto;
+    min-height: 160px;
+    word-break: break-word;
+    transition: color var(--transition-slow);
+    caret-color: var(--primary);
+}
+
+/* Placeholder via ::before */
+.editor-content:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-placeholder);
+    pointer-events: none;
+    display: block;
+    font-style: normal;
+}
+
+/* Formatting styles inside editor */
+.editor-content b,
+.editor-content strong { font-weight: 700; }
+.editor-content i,
+.editor-content em     { font-style: italic; }
+.editor-content u      { text-decoration: underline; }
+.editor-content s      { text-decoration: line-through; }
+.editor-content h1     { font-size: 1.7em; font-weight: 700; margin: 8px 0 4px; line-height: 1.3; }
+.editor-content h2     { font-size: 1.35em; font-weight: 700; margin: 8px 0 4px; }
+.editor-content h3     { font-size: 1.15em; font-weight: 600; margin: 6px 0 4px; }
+.editor-content ul, .editor-content ol { padding-left: 24px; margin: 6px 0; }
+.editor-content li     { margin-bottom: 3px; }
+.editor-content blockquote {
+    border-left: 3px solid var(--primary);
+    padding: 4px 14px;
+    margin: 8px 0;
+    color: var(--text-muted);
+    font-style: italic;
+}
+.editor-content pre, .editor-content code {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 2px 6px;
+}
+.editor-content pre { padding: 12px 16px; overflow-x: auto; }
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.editor-footer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 44px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    transition: background var(--transition-slow), border-color var(--transition-slow);
+}
+
+.editor-stat {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Delete note button */
+.btn-delete-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    font-family: var(--font);
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition), background var(--transition);
+}
+.btn-delete-note:hover {
+    color: var(--error);
+    background: rgba(239,68,68,0.08);
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .editor-toolbar {
+        padding: 5px 8px;
+        gap: 6px;
+        min-height: 42px;
+    }
+    .editor-body {
+        padding: 16px 14px 12px;
+    }
+    .editor-footer {
+        padding: 8px 14px;
+        gap: 10px;
+    }
+    .editor-title-input {
+        font-size: 19px;
+        margin-bottom: 2px;
+    }
+    .editor-meta {
+        font-size: 11px;
+        margin-bottom: 8px;
+    }
+    .editor-content {
+        font-size: 14.5px;
+        line-height: 1.6;
+        min-height: 180px;
+    }
+    .toolbar-select {
+        height: 28px;
+        font-size: 11.5px;
+        padding: 0 6px;
+    }
+    .toolbar-btn {
+        width: 30px;
+        height: 30px;
+    }
+    .toolbar-btn svg {
+        width: 15px;
+        height: 15px;
+    }
+    .mode-pill {
+        height: 24px;
+        padding: 0 8px;
+        font-size: 11px;
+        gap: 4px;
+    }
+    .mode-pill svg {
+        width: 11px;
+        height: 11px;
+    }
+    .markdown-workspace.view-split {
+        flex-direction: column;
+        height: calc(100vh - 190px);
+    }
+    .markdown-workspace.view-split .md-editor-pane {
+        width: 100%;
+        height: 50%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+    .markdown-workspace.view-split .md-preview-pane {
+        width: 100%;
+        height: 50%;
+    }
+}
+
+@media (hover: none) {
+    /* Disable hover tooltips on touch screens */
+    .toolbar-btn[data-tooltip]::after {
+        display: none !important;
+    }
+}
+
+/* ── Editor Mode Switch (Rich Text vs Markdown) ──────────────────── */
+.mode-switch-group {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface-2);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.mode-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: calc(var(--radius-sm) - 2px);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.mode-pill:hover {
+    color: var(--text);
+}
+.mode-pill.active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(255, 128, 0, 0.35);
+}
+.mode-pill svg {
+    flex-shrink: 0;
+}
+
+/* ── Toolbar Group ─────────────────────────────────────────────── */
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+/* ── Markdown View Switch (Write | Split | Preview) ─────────────── */
+.md-view-switch {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface-2);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    gap: 1px;
+    flex-shrink: 0;
+}
+
+.md-view-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: calc(var(--radius-sm) - 2px);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.md-view-btn:hover {
+    color: var(--text);
+}
+.md-view-btn.active {
+    background: var(--surface);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ── Markdown Workspace & Panes ─────────────────────────────────── */
+.markdown-workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    min-height: 200px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+}
+
+.markdown-pane {
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* View states */
+.markdown-workspace.view-write .md-editor-pane {
+    width: 100%;
+    flex: 1;
+}
+.markdown-workspace.view-write .md-preview-pane {
+    display: none !important;
+}
+
+.markdown-workspace.view-split .md-editor-pane {
+    width: 50%;
+    flex: 1;
+    border-right: 1px solid var(--border);
+}
+.markdown-workspace.view-split .md-preview-pane {
+    width: 50%;
+    flex: 1;
+    display: flex !important;
+}
+
+.markdown-workspace.view-preview .md-editor-pane {
+    display: none !important;
+}
+.markdown-workspace.view-preview .md-preview-pane {
+    width: 100%;
+    flex: 1;
+    display: flex !important;
+}
+
+/* Markdown Textarea Editor */
+.markdown-textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.75;
+    resize: none;
+    padding: 8px 16px 24px 0;
+    overflow-y: auto;
+    caret-color: var(--primary);
+    transition: color var(--transition-slow);
+}
+.markdown-textarea::placeholder {
+    color: var(--text-placeholder);
+    font-family: var(--font);
+    font-size: 14px;
+}
+
+/* Markdown Live Preview */
+.markdown-preview {
+    width: 100%;
+    height: 100%;
+    padding: 8px 12px 24px 20px;
+    overflow-y: auto;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.8;
+    word-break: break-word;
+    transition: color var(--transition-slow);
+}
+
+/* GitHub / Obsidian styled Markdown Preview Typography */
+.markdown-preview > *:first-child {
+    margin-top: 0 !important;
+}
+.markdown-preview > *:last-child {
+    margin-bottom: 0 !important;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+    color: var(--text);
+    font-weight: 700;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    line-height: 1.35;
+}
+.markdown-preview h1 {
+    font-size: 1.75em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+}
+.markdown-preview h2 {
+    font-size: 1.4em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+}
+.markdown-preview h3 {
+    font-size: 1.2em;
+}
+.markdown-preview h4 {
+    font-size: 1.05em;
+}
+
+.markdown-preview p {
+    margin: 10px 0;
+}
+
+.markdown-preview b,
+.markdown-preview strong {
+    font-weight: 700;
+}
+
+.markdown-preview i,
+.markdown-preview em {
+    font-style: italic;
+}
+
+.markdown-preview del,
+.markdown-preview s {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.markdown-preview a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: opacity var(--transition);
+}
+.markdown-preview a:hover {
+    opacity: 0.85;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+    padding-left: 24px;
+    margin: 10px 0;
+}
+
+.markdown-preview li {
+    margin-bottom: 4px;
+}
+
+.markdown-preview li.task-list-item,
+.markdown-preview input[type="checkbox"] {
+    list-style-type: none;
+}
+.markdown-preview input[type="checkbox"] {
+    margin-right: 8px;
+    accent-color: var(--primary);
+    cursor: default;
+}
+
+.markdown-preview blockquote {
+    border-left: 3.5px solid var(--primary);
+    padding: 8px 16px;
+    margin: 14px 0;
+    background: var(--surface-2);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+.markdown-preview blockquote p {
+    margin: 4px 0;
+}
+
+.markdown-preview code {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--primary-dark);
+    border-radius: var(--radius-sm);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    padding: 2px 6px;
+}
+[data-theme="dark"] .markdown-preview code {
+    color: #ff9d33;
+}
+
+.markdown-preview pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin: 14px 0;
+    overflow-x: auto;
+    line-height: 1.6;
+}
+.markdown-preview pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--text);
+    font-size: 13.5px;
+}
+
+.markdown-preview table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13.5px;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+.markdown-preview th,
+.markdown-preview td {
+    border: 1px solid var(--border);
+    padding: 9px 13px;
+    text-align: left;
+}
+.markdown-preview th {
+    background: var(--surface-2);
+    font-weight: 600;
+    color: var(--text);
+}
+.markdown-preview tr:nth-child(even) {
+    background: rgba(128, 128, 128, 0.04);
+}
+
+.markdown-preview hr {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 22px 0;
+}
+
+.markdown-preview img {
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+    margin: 10px 0;
+}

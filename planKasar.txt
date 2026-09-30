@@ -1,0 +1,70 @@
+Nama Aplikasi = Xeon Notepad ()
+Bahasa aplikasi = PHP, HTML, CSS, JS
+Database = mysql
+
+latar belakang
+jadi begini, saya itu sering kehilangan catatan yang simpan di komputer kampus, makanya saya kepikiran bikin web biar catatan saya aman dan saya bisa mencatat materi menggunakan komputer kampus, dan ketika saya tidak perlu repot untuk transfer file ke laptop saya.
+maka dari hal tersebut, saya berfikir ( kenapa tidak saya buat aplikasi notepad online saja? yang bisa saya akses dari mana saja )
+
+plan fitur 
+1. fitur login
+2. fitur register
+3. fitur logout
+4. fitur tambah catatan
+5. fitur edit catatan
+6. fitur delete catatan
+7. fitur search catatan
+( kurang lebih sama seperti notepad di HP atau laptop )
+oiya, untuk fitur menulis catatannya, saya mau ada formatting seperti bold, italic, underline, text color, dll ( tapi itu opsional sih )
+pembuatanya santai aja, ga harus buru-buru kok, intinya jadi dulu, nanti bisa di upgrade
+dan semuanya nanti di simpan kedalam Database
+
+
+untuk design nya
+saya ingin aplikasi ini menggunakan light mode saja sebagai default
+untuk warna utama UI nya adalah, warna oranye dan putih ( seperti logo fox )
+lalu ada juga dark mode: oranye dark
+untuk warna oranye nya seperti apa? kurang lebih seperti logo aplikasi yang sudah saya sediakan di logo/NotepadIcon.png
+saya ingin tampilan login, register, logout, tambah catatan, edit catatan, delete catatan, search catatan, rapih dan enak di pandang, 
+dan saya ingin clean design.. tidak muluk muluk, tidak terlalu ramai, tidak ada emoji, tetapi mudah di pahami dan mudah digunakan ( user frendly )
+design juga harus responsive di semua device//
+untuk font utama, gunakan Mi - Sans untuk semua hal ( saya suka design punya xiaomi soalnya hehehehe ) 
+
+
+
+bahasa dan story telling
+gunakan bahasa inggris full di dalam aplikasi maupun program nya
+buat dengan bahasa yang mudah di pahami oleh user, jangan yang susah susah, intinya mudah di pahami dan mudah digunakan ( user frendly )
+berikan panduan penggunakan juga (mungkin untuk bagian yang terlalu teknis)
+
+
+userfriendly
+gunakan auto save ketika user mengetik apapun itu pada notepad
+gunakan notifikasi ketika ada hal penting / error
+user dapat mendownload text notepad itu sebagai txt atau format lainnya
+tambahkanjuga fitur untuk melacak perubahan apa saja yang sudah dilakukan user pada notepad ( support undo, atau ctrl z ). dan user bisa melihat list perubahan yang sudah dia lakukan (misal: "user merubah teks 'abc' menjadi 'xyz' pada tanggal xx/xx/xxxx xx:xx:xx")
+
+
+
+coding plan
+buat aplikasi ini dengan bahasa pemrograman utama PHP, HTML, CSS, JS
+untuk database nya, bikin 1 database aja, di dalemnya bikin beberapa tabel ( tergantung kebutuhan )
+saya ingin aplikasi ini menggunakan light mode saja sebagai default
+untuk warna utama UI nya adalah, warna oranye dan putih ( seperti logo fox )
+untuk aplikasi nya saya mau MVC dan OOP 
+
+
+database & keamananan
+gunakan database mysql dengan keamanan tingkat lanjut
+buat semua string milik user tidak dapat di akses orang lain, dan terenkripsi
+nanti buat key enkripsinya di file .env yaa
+bahkan saya sebagai owner pun tidak dapat melihat isi asli catatan user
+
+
+networking security
+buat aplikasi ini selalu aman dari serangan hacker, seperti xss, sql injection, dll
+gunakan metode keamanan terbaik untuk aplikasi ini
+
+
+
+

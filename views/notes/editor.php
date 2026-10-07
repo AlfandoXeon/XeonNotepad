@@ -367,23 +367,265 @@ $updatedAt   = $note
 
     </div><!-- /.editor-body -->
 
-    <!-- ── Footer: word count + delete ─────────────────────────────────── -->
+    <!-- ── Footer: word count + delete + Xeon AI ────────────────────── -->
     <div class="editor-footer">
-        <span class="editor-stat" id="wordCount" aria-live="polite">0 words</span>
-        <span class="editor-stat" id="charCount" aria-live="polite">0 chars</span>
+        <div class="editor-footer-left">
+            <span class="editor-stat" id="wordCount" aria-live="polite">0 words</span>
+            <span class="editor-stat" id="charCount" aria-live="polite">0 chars</span>
+        </div>
 
-        <?php if ($noteId): ?>
-        <button class="btn-delete-note" id="deleteNoteBtn" data-note-id="<?= $noteId ?>" aria-label="Delete this note">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-            </svg>
-            Delete note
-        </button>
-        <?php endif; ?>
+        <div class="editor-footer-center">
+            <button type="button" class="btn-xeon-ai-footer" id="xeonAiBtn" title="Open Xeon AI Assistant">
+                <span class="material-symbols-outlined ai-sparkle-spin" aria-hidden="true">auto_awesome</span>
+                <span>Xeon AI</span>
+            </button>
+        </div>
+
+        <div class="editor-footer-right">
+            <?php if ($noteId): ?>
+            <button class="btn-delete-note" id="deleteNoteBtn" data-note-id="<?= $noteId ?>" aria-label="Delete this note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+                </svg>
+                Delete note
+            </button>
+            <?php endif; ?>
+        </div>
     </div>
 
 </div><!-- /.editor-wrapper -->
+
+<!-- ── Xeon AI Assistant Modal (Editor) ───────────────────────────── -->
+<div class="modal-overlay" id="xeonAiModal" role="dialog" aria-modal="true" aria-labelledby="xeonAiModalTitle">
+    <div class="modal modal-lg ai-modal-card">
+        <!-- Header -->
+        <div class="ai-modal-header">
+            <div class="ai-modal-header-title">
+                <span class="material-symbols-outlined ai-sparkle-icon" aria-hidden="true">auto_awesome</span>
+                <div>
+                    <h3 id="xeonAiModalTitle" class="ai-modal-heading">Xeon AI Assistant</h3>
+                    <span style="font-size:12px; color:var(--text-muted);">Intelligent note writing & transformation</span>
+                </div>
+            </div>
+            <button type="button" class="btn-icon" id="closeXeonAiModal" aria-label="Close modal">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Mode navigation tabs -->
+        <div class="ai-nav-tabs" role="tablist">
+            <button type="button" class="ai-tab-btn active" data-tab="prompt" role="tab" aria-selected="true">
+                <span class="material-symbols-outlined text-sm">edit</span>
+                <span>Prompt / Generate</span>
+            </button>
+            <button type="button" class="ai-tab-btn" data-tab="templates" role="tab" aria-selected="false">
+                <span class="material-symbols-outlined text-sm">space_dashboard</span>
+                <span>Templates</span>
+            </button>
+            <button type="button" class="ai-tab-btn" data-tab="transform" role="tab" aria-selected="false">
+                <span class="material-symbols-outlined text-sm">transform</span>
+                <span>Transform Note</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="ai-modal-body">
+
+            <!-- TAB 1: Prompt / Generate -->
+            <div class="ai-tab-panel active" id="aiTabPrompt">
+                <div class="form-group">
+                    <label class="form-label" for="aiPromptText">What should Xeon AI write or continue?</label>
+                    <textarea
+                        id="aiPromptText"
+                        class="form-input"
+                        rows="4"
+                        placeholder="E.g., Explain microservices architectural patterns with pros and cons, or draft meeting minutes..."
+                        style="resize:vertical;"
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Quick Ideas</label>
+                    <div class="ai-quick-suggestions">
+                        <button type="button" class="suggestion-chip" data-prompt="Continue writing the next logical paragraphs based on this note.">Continue writing</button>
+                        <button type="button" class="suggestion-chip" data-prompt="Extract and list all key actionable takeaways from this note.">Extract action items</button>
+                        <button type="button" class="suggestion-chip" data-prompt="Create a clear study quiz with 5 questions and answers based on this text.">Create 5-question quiz</button>
+                        <button type="button" class="suggestion-chip" data-prompt="Explain this concept simply using an intuitive real-world analogy.">Explain with analogy</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Templates -->
+            <div class="ai-tab-panel" id="aiTabTemplates">
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Select a structured document template to generate:</p>
+                <div class="ai-template-grid">
+                    <div class="template-select-card" data-template="meeting_notes">
+                        <div class="template-card-head">
+                            <span class="material-symbols-outlined text-primary">groups</span>
+                            <strong>Meeting Notes</strong>
+                        </div>
+                        <p>Agenda, attendees, key decisions, and action items checklist.</p>
+                    </div>
+                    <div class="template-select-card" data-template="study_summary">
+                        <div class="template-card-head">
+                            <span class="material-symbols-outlined text-primary">school</span>
+                            <strong>Study Summary</strong>
+                        </div>
+                        <p>Core concepts, definitions, deep breakdown, and review points.</p>
+                    </div>
+                    <div class="template-select-card" data-template="todo_list">
+                        <div class="template-card-head">
+                            <span class="material-symbols-outlined text-primary">checklist</span>
+                            <strong>Action Checklist</strong>
+                        </div>
+                        <p>Prioritized task breakdown with `- [ ]` markdown checkboxes.</p>
+                    </div>
+                    <div class="template-select-card" data-template="project_plan">
+                        <div class="template-card-head">
+                            <span class="material-symbols-outlined text-primary">account_tree</span>
+                            <strong>Project Plan</strong>
+                        </div>
+                        <p>Objectives, milestone phases, timeline, and risk mitigation.</p>
+                    </div>
+                    <div class="template-select-card" data-template="technical_doc">
+                        <div class="template-card-head">
+                            <span class="material-symbols-outlined text-primary">terminal</span>
+                            <strong>Technical Doc</strong>
+                        </div>
+                        <p>Architecture, prerequisites, setup, endpoints, and examples.</p>
+                    </div>
+                    <div class="template-select-card" data-template="brainstorming">
+                        <div class="template-card-head">
+                            <span class="material-symbols-outlined text-primary">lightbulb</span>
+                            <strong>Brainstorming</strong>
+                        </div>
+                        <p>Challenge statement, idea clusters, pros/cons, and next steps.</p>
+                    </div>
+                    <div class="template-select-card" data-template="formal_email">
+                        <div class="template-card-head">
+                            <span class="material-symbols-outlined text-primary">mail</span>
+                            <strong>Formal Email</strong>
+                        </div>
+                        <p>Polished business letter with subject, purpose, and clear CTA.</p>
+                    </div>
+                    <div class="template-select-card" data-template="creative_draft">
+                        <div class="template-card-head">
+                            <span class="material-symbols-outlined text-primary">article</span>
+                            <strong>Article Draft</strong>
+                        </div>
+                        <p>Engaging headline, hook, structured body, and conclusions.</p>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:14px;">
+                    <label class="form-label" for="aiTemplateTopic">Specific Topic / Context (Optional)</label>
+                    <input type="text" id="aiTemplateTopic" class="form-input" placeholder="e.g. Q3 Sales Strategy Sync, or Quantum Computing basics">
+                </div>
+            </div>
+
+            <!-- TAB 3: Transform Current Note -->
+            <div class="ai-tab-panel" id="aiTabTransform">
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Transform or polish the existing text in this note:</p>
+                <div class="ai-transform-actions">
+                    <button type="button" class="btn-transform" data-action="summarize">
+                        <span class="material-symbols-outlined">summarize</span>
+                        <div>
+                            <strong>Summarize Note</strong>
+                            <span>Create a concise bulleted summary of key points</span>
+                        </div>
+                    </button>
+                    <button type="button" class="btn-transform" data-action="expand">
+                        <span class="material-symbols-outlined">unfold_more</span>
+                        <div>
+                            <strong>Expand &amp; Elaborate</strong>
+                            <span>Add detailed explanations and practical examples</span>
+                        </div>
+                    </button>
+                    <button type="button" class="btn-transform" data-action="fix_grammar">
+                        <span class="material-symbols-outlined">spellcheck</span>
+                        <div>
+                            <strong>Fix Grammar &amp; Polish</strong>
+                            <span>Refine spelling, clarity, and overall flow</span>
+                        </div>
+                    </button>
+                    <button type="button" class="btn-transform" data-action="change_tone">
+                        <span class="material-symbols-outlined">tune</span>
+                        <div>
+                            <strong>Change Writing Tone</strong>
+                            <span>Rewrite with the selected tone profile below</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Shared Options: Tone & Target -->
+            <div class="ai-shared-options">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Voice / Tone</label>
+                    <div class="ai-tone-chips" id="editorToneChips" role="radiogroup">
+                        <button type="button" class="tone-chip active" data-tone="balanced">Balanced</button>
+                        <button type="button" class="tone-chip" data-tone="professional">Professional</button>
+                        <button type="button" class="tone-chip" data-tone="casual">Casual</button>
+                        <button type="button" class="tone-chip" data-tone="academic">Academic</button>
+                        <button type="button" class="tone-chip" data-tone="concise">Concise</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" for="aiInsertMode">Destination</label>
+                    <select id="aiInsertMode" class="form-input">
+                        <option value="cursor">Insert at Cursor</option>
+                        <option value="append">Append to End of Note</option>
+                        <option value="replace">Replace Entire Note</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Generation Loading Box -->
+            <div class="ai-loading-box" id="editorAiLoading" style="display:none;">
+                <div class="ai-loading-spinner"></div>
+                <div class="ai-loading-status" id="editorAiStatusText">Xeon AI is generating your content...</div>
+            </div>
+
+            <!-- Generated Output Preview Box -->
+            <div class="ai-preview-box" id="editorAiPreviewBox" style="display:none;">
+                <div class="ai-preview-header">
+                    <span class="ai-preview-title" id="editorAiPreviewTitle">Generated Output Preview</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" class="btn-skip-typing" id="editorAiSkipTypingBtn" style="display:none;" title="Skip typing animation">
+                            <span class="material-symbols-outlined text-xs">fast_forward</span>
+                            <span>Skip</span>
+                        </button>
+                        <button type="button" class="btn btn-ghost" id="copyAiOutputBtn" style="padding:4px 10px; font-size:12px;">
+                            <span class="material-symbols-outlined text-xs">content_copy</span>
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="ai-preview-content" id="editorAiPreviewContent"></div>
+            </div>
+
+        </div>
+
+        <!-- Footer Modal Actions -->
+        <div class="modal-actions ai-modal-actions">
+            <button type="button" class="btn btn-ghost" id="cancelXeonAiModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="editorAiGenerateBtn">
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">auto_awesome</span>
+                <span id="editorAiGenerateBtnText">Generate</span>
+            </button>
+            <button type="button" class="btn btn-success" id="editorAiApplyBtn" style="display:none;">
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
+                <span>Insert into Note</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 
 <!-- Expose note data to editor.js -->
 <script>

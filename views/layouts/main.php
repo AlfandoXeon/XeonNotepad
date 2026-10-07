@@ -8,6 +8,10 @@
     <meta name="csrf-token"  content="<?= $csrfToken ?? '' ?>">
     <meta name="app-url"     content="<?= APP_URL ?>">
     <link rel="icon" type="image/png" href="<?= APP_URL ?>/logo/NotepadIcon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..0&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
     <link rel="stylesheet" href="<?= APP_URL ?>/public/css/style.css">
     <link rel="stylesheet" href="<?= APP_URL ?>/public/css/editor.css">
 </head>
@@ -56,6 +60,7 @@
     <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
 <script src="<?= APP_URL ?>/public/js/app.js"></script>
 <?php if (!empty($includeEditor)): ?>
 <script src="<?= APP_URL ?>/public/js/marked.min.js"></script>

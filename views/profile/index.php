@@ -167,6 +167,113 @@
 
     </div><!-- /.profile-grid -->
 
+    <!-- ── Preferences & Settings Card ────────────────────────────── -->
+    <section class="profile-card profile-card-wide" aria-labelledby="preferencesTitle" style="margin-top: 24px;">
+        <div class="profile-card-header">
+            <span class="material-symbols-outlined" style="font-size: 22px; color: var(--primary);" aria-hidden="true">tune</span>
+            <h2 id="preferencesTitle">Editor &amp; Xeon AI Preferences</h2>
+        </div>
+        <div class="profile-card-body">
+            <form id="preferencesForm" onsubmit="event.preventDefault(); window.saveXeonPreferences();">
+                <div class="prefs-grid">
+
+                    <!-- Default Editor Mode -->
+                    <div class="form-group">
+                        <label class="form-label" for="prefEditorMode">Default Editor Mode</label>
+                        <select id="prefEditorMode" class="form-input">
+                            <option value="rich">Rich Text (WYSIWYG)</option>
+                            <option value="markdown">Markdown (GFM)</option>
+                        </select>
+                        <span class="form-hint">Choose which mode opens when you create or view notes.</span>
+                    </div>
+
+                    <!-- Default Markdown View -->
+                    <div class="form-group">
+                        <label class="form-label" for="prefMdView">Default Markdown Layout</label>
+                        <select id="prefMdView" class="form-input">
+                            <option value="split">Split (Side-by-side Live Preview)</option>
+                            <option value="write">Write Only (Distraction-free)</option>
+                            <option value="preview">Rendered Preview Only</option>
+                        </select>
+                        <span class="form-hint">Layout applied when switching to Markdown mode.</span>
+                    </div>
+
+                    <!-- Editor Font Family -->
+                    <div class="form-group">
+                        <label class="form-label" for="prefFontFamily">Editor Font Family</label>
+                        <select id="prefFontFamily" class="form-input">
+                            <option value="misans">MiSans (Clean Xiaomi Default)</option>
+                            <option value="sans">System Sans-Serif</option>
+                            <option value="mono">Monospace (Code / Technical)</option>
+                        </select>
+                        <span class="form-hint">Font applied to your note writing canvas.</span>
+                    </div>
+
+                    <!-- Editor Font Size -->
+                    <div class="form-group">
+                        <label class="form-label" for="prefFontSize">Editor Font Size</label>
+                        <select id="prefFontSize" class="form-input">
+                            <option value="14">Compact (14px)</option>
+                            <option value="16" selected>Normal (16px)</option>
+                            <option value="18">Comfortable (18px)</option>
+                            <option value="20">Large (20px)</option>
+                        </select>
+                        <span class="form-hint">Comfort level for writing and reading notes.</span>
+                    </div>
+
+                    <!-- Auto-Save Speed -->
+                    <div class="form-group">
+                        <label class="form-label" for="prefAutoSaveSpeed">Auto-Save Frequency</label>
+                        <select id="prefAutoSaveSpeed" class="form-input">
+                            <option value="350">Rapid (350ms after typing)</option>
+                            <option value="750">Balanced (750ms)</option>
+                            <option value="1500">Relaxed (1.5 seconds)</option>
+                        </select>
+                        <span class="form-hint">Debounce duration before background sync occurs.</span>
+                    </div>
+
+                    <!-- Default Xeon AI Tone -->
+                    <div class="form-group">
+                        <label class="form-label" for="prefAiTone">Default Xeon AI Tone</label>
+                        <select id="prefAiTone" class="form-input">
+                            <option value="balanced">Balanced &amp; Natural</option>
+                            <option value="professional">Professional &amp; Structured</option>
+                            <option value="casual">Casual &amp; Friendly</option>
+                            <option value="academic">Academic &amp; Thorough</option>
+                            <option value="concise">Super Concise &amp; Bulleted</option>
+                        </select>
+                        <span class="form-hint">Persona preset used by Xeon AI generation.</span>
+                    </div>
+
+                </div><!-- /.prefs-grid -->
+
+                <!-- Custom Groq API Key (Optional) -->
+                <div class="form-group" style="margin-top: 16px;">
+                    <label class="form-label" for="prefCustomGroqKey">
+                        Custom Groq API Key <span style="font-weight: normal; color: var(--text-muted);">(Optional Personal Key)</span>
+                    </label>
+                    <input
+                        type="password"
+                        id="prefCustomGroqKey"
+                        class="form-input"
+                        placeholder="gsk_..."
+                        autocomplete="off"
+                    >
+                    <span class="form-hint">
+                        Leave blank to use the server's default Xeon AI key. Saved only in your browser's private local storage.
+                    </span>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary" id="savePrefsBtn" style="min-width: 180px;">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">save</span>
+                        <span>Save Preferences</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
 </div><!-- /.profile-page -->
 
 <script>
@@ -180,4 +287,40 @@ document.querySelectorAll('.pass-toggle-btn').forEach(function(btn) {
         btn.style.opacity = input.type === 'text' ? '0.5' : '1';
     });
 });
+
+// Load and populate preferences
+function loadXeonPreferences() {
+    var raw = localStorage.getItem('xeon-preferences');
+    if (!raw) return;
+    try {
+        var prefs = JSON.parse(raw);
+        if (prefs.editorMode)      document.getElementById('prefEditorMode').value = prefs.editorMode;
+        if (prefs.mdView)          document.getElementById('prefMdView').value = prefs.mdView;
+        if (prefs.fontFamily)      document.getElementById('prefFontFamily').value = prefs.fontFamily;
+        if (prefs.fontSize)        document.getElementById('prefFontSize').value = prefs.fontSize;
+        if (prefs.autoSaveSpeed)   document.getElementById('prefAutoSaveSpeed').value = prefs.autoSaveSpeed;
+        if (prefs.aiTone)          document.getElementById('prefAiTone').value = prefs.aiTone;
+        if (prefs.customGroqKey)   document.getElementById('prefCustomGroqKey').value = prefs.customGroqKey;
+    } catch (e) {
+        console.error('Failed to parse preferences', e);
+    }
+}
+
+window.saveXeonPreferences = function() {
+    var prefs = {
+        editorMode:    document.getElementById('prefEditorMode').value,
+        mdView:        document.getElementById('prefMdView').value,
+        fontFamily:    document.getElementById('prefFontFamily').value,
+        fontSize:      document.getElementById('prefFontSize').value,
+        autoSaveSpeed: document.getElementById('prefAutoSaveSpeed').value,
+        aiTone:        document.getElementById('prefAiTone').value,
+        customGroqKey: document.getElementById('prefCustomGroqKey').value.trim(),
+    };
+    localStorage.setItem('xeon-preferences', JSON.stringify(prefs));
+    if (typeof xeonToast === 'function') {
+        xeonToast('Preferences Saved', 'Your editor and Xeon AI settings have been updated.', 'success');
+    }
+};
+
+document.addEventListener('DOMContentLoaded', loadXeonPreferences);
 </script>

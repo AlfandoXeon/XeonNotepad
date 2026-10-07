@@ -11,16 +11,39 @@ class NoteController extends Controller
     public function index(): void
     {
         $this->requireAuth();
-        $user  = $this->currentUser();
-        $notes = (new Note())->getAllByUser($user['id']);
+        $user        = $this->currentUser();
+        $allNotes    = (new Note())->getAllByUser($user['id']);
+        $totalCount  = count($allNotes);
+        $recentNotes = array_slice($allNotes, 0, 10);
 
         $this->view('main', 'notes/index', [
             'pageTitle'   => APP_NAME,
-            'notes'       => $notes,
+            'notes'       => $recentNotes,
+            'totalCount'  => $totalCount,
             'currentUser' => $user,
             'csrfToken'   => $this->generateCsrf(),
             'activeNote'  => null,
             'hideSidebar' => true,
+        ]);
+    }
+
+    // ── All notes list page (/listnote) ────────────────────────────────────
+
+    public function listAll(): void
+    {
+        $this->requireAuth();
+        $user     = $this->currentUser();
+        $allNotes = (new Note())->getAllByUser($user['id']);
+
+        $this->view('main', 'notes/list', [
+            'pageTitle'      => 'All Notes — ' . APP_NAME,
+            'notes'          => $allNotes,
+            'totalCount'     => count($allNotes),
+            'currentUser'    => $user,
+            'csrfToken'      => $this->generateCsrf(),
+            'activeNote'     => null,
+            'hideSidebar'    => true,
+            'isAllNotesPage' => true,
         ]);
     }
 

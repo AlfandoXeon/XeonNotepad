@@ -425,7 +425,9 @@
     function scheduleAutoSave() {
         clearTimeout(saveTimer);
         setSaveState('saving');
-        saveTimer = setTimeout(saveNote, DEBOUNCE_MS);
+        const prefs = window.getXeonPreferences ? window.getXeonPreferences() : {};
+        const debounceMs = parseInt(prefs.autoSaveSpeed, 10) || DEBOUNCE_MS;
+        saveTimer = setTimeout(saveNote, debounceMs);
     }
 
     async function saveNote() {
@@ -726,12 +728,360 @@
         setTimeout(() => { isScrollingPane = false; }, 40);
     });
 
+    /* ── Xeon AI Assistant In-Editor Handler ─────────────────────── */
+
+    function initXeonAiEditor() {
+        const aiBtn           = document.getElementById('xeonAiBtn');
+        const modal           = document.getElementById('xeonAiModal');
+        const closeBtn        = document.getElementById('closeXeonAiModal');
+        const cancelBtn       = document.getElementById('cancelXeonAiModal');
+        const tabBtns         = modal?.querySelectorAll('.ai-tab-btn');
+        const tabPanels       = modal?.querySelectorAll('.ai-tab-panel');
+        const promptInput     = document.getElementById('aiPromptText');
+        const templateCards   = modal?.querySelectorAll('.template-select-card');
+        const templateTopic   = document.getElementById('aiTemplateTopic');
+        const transformBtns   = modal?.querySelectorAll('.btn-transform');
+        const toneChips       = modal?.querySelectorAll('#editorToneChips .tone-chip');
+        const insertModeSel   = document.getElementById('aiInsertMode');
+        const generateBtn     = document.getElementById('editorAiGenerateBtn');
+        const generateBtnText = document.getElementById('editorAiGenerateBtnText');
+        const applyBtn        = document.getElementById('editorAiApplyBtn');
+        const copyBtn         = document.getElementById('copyAiOutputBtn');
+        const loadingBox      = document.getElementById('editorAiLoading');
+        const previewBox      = document.getElementById('editorAiPreviewBox');
+        const previewTitle    = document.getElementById('editorAiPreviewTitle');
+        const previewContent  = document.getElementById('editorAiPreviewContent');
+        const skipBtn         = document.getElementById('editorAiSkipTypingBtn');
+
+        if (!modal || !aiBtn) return;
+
+        let activeTab        = 'prompt'; // 'prompt' | 'templates' | 'transform'
+        let selectedTemplate = '';
+        let selectedAction   = ''; // 'summarize' | 'expand' | 'fix_grammar' | 'change_tone'
+        let selectedTone     = 'balanced';
+        let generatedTitle   = '';
+        let generatedContent = '';
+        let editorTypewriter = null;
+
+        function openModal() {
+            const prefs = window.getXeonPreferences ? window.getXeonPreferences() : {};
+            selectedTone = prefs.aiTone || 'balanced';
+
+            toneChips?.forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.tone === selectedTone);
+            });
+
+            previewBox.style.display = 'none';
+            loadingBox.style.display = 'none';
+            applyBtn.style.display   = 'none';
+            generateBtn.disabled     = false;
+            generateBtnText.textContent = 'Generate';
+
+            modal.classList.add('active');
+            if (activeTab === 'prompt' && promptInput) {
+                setTimeout(() => promptInput.focus(), 100);
+            }
+        }
+
+        function closeModal() {
+            if (editorTypewriter) editorTypewriter.cancel();
+            modal.classList.remove('active');
+        }
+
+        aiBtn.addEventListener('click', openModal);
+        closeBtn?.addEventListener('click', closeModal);
+        cancelBtn?.addEventListener('click', closeModal);
+        modal.addEventListener('click', e => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Tab navigation
+        tabBtns?.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTab = btn.dataset.tab;
+                activeTab = targetTab;
+
+                tabBtns.forEach(b => {
+                    b.classList.toggle('active', b === btn);
+                    b.setAttribute('aria-selected', String(b === btn));
+                });
+                tabPanels?.forEach(p => {
+                    p.classList.remove('active');
+                });
+                const panel = document.getElementById('aiTab' + targetTab.charAt(0).toUpperCase() + targetTab.slice(1));
+                if (panel) panel.classList.add('active');
+
+                // Adjust generate button label
+                if (targetTab === 'transform') {
+                    generateBtnText.textContent = selectedAction ? 'Transform Note' : 'Select an Action';
+                } else {
+                    generateBtnText.textContent = 'Generate';
+                }
+            });
+        });
+
+        // Quick suggestions
+        modal.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (promptInput) {
+                    promptInput.value = chip.dataset.prompt || '';
+                    promptInput.focus();
+                }
+            });
+        });
+
+        // Template cards
+        templateCards?.forEach(card => {
+            card.addEventListener('click', () => {
+                templateCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                selectedTemplate = card.dataset.template || '';
+            });
+        });
+
+        // Transform action buttons
+        transformBtns?.forEach(btn => {
+            btn.addEventListener('click', () => {
+                transformBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedAction = btn.dataset.action || '';
+                generateBtnText.textContent = 'Transform Note';
+            });
+        });
+
+        // Tone chips
+        toneChips?.forEach(chip => {
+            chip.addEventListener('click', () => {
+                toneChips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                selectedTone = chip.dataset.tone || 'balanced';
+            });
+        });
+
+        // Generate Action
+        generateBtn?.addEventListener('click', async () => {
+            const prefs = window.getXeonPreferences ? window.getXeonPreferences() : {};
+            let promptText = '';
+            let actionType = 'generate';
+            let tmplType   = '';
+            let contextTxt = '';
+
+            // Get note current text
+            if (currentMode === 'markdown') {
+                contextTxt = noteMarkdown ? noteMarkdown.value : '';
+            } else {
+                contextTxt = contentEl ? contentEl.innerText : '';
+            }
+
+            if (activeTab === 'prompt') {
+                promptText = promptInput?.value.trim() || '';
+                if (!promptText) {
+                    if (typeof window.xeonToast === 'function') {
+                        window.xeonToast('Prompt Required', 'Please type instructions or a topic for Xeon AI.', 'warning');
+                    }
+                    return;
+                }
+            } else if (activeTab === 'templates') {
+                if (!selectedTemplate) {
+                    if (typeof window.xeonToast === 'function') {
+                        window.xeonToast('Template Required', 'Please select one of the document templates.', 'warning');
+                    }
+                    return;
+                }
+                actionType = 'template';
+                tmplType   = selectedTemplate;
+                promptText = templateTopic?.value.trim() || '';
+            } else if (activeTab === 'transform') {
+                if (!selectedAction) {
+                    if (typeof window.xeonToast === 'function') {
+                        window.xeonToast('Action Required', 'Please select a transform action (Summarize, Expand, etc.).', 'warning');
+                    }
+                    return;
+                }
+                if (!contextTxt.trim()) {
+                    if (typeof window.xeonToast === 'function') {
+                        window.xeonToast('Empty Note', 'This note has no text to transform. Write some text first or use the Prompt tab.', 'warning');
+                    }
+                    return;
+                }
+                actionType = selectedAction;
+                promptText = contextTxt;
+            }
+
+            loadingBox.style.display = 'flex';
+            previewBox.style.display = 'none';
+            applyBtn.style.display   = 'none';
+            generateBtn.disabled     = true;
+            generateBtnText.textContent = 'Thinking...';
+
+            const fd = new FormData();
+            fd.append('csrf_token', getCSRF());
+            fd.append('action', actionType);
+            fd.append('prompt', promptText);
+            fd.append('template_type', tmplType);
+            fd.append('tone', selectedTone);
+            fd.append('context_text', contextTxt);
+            fd.append('existing_title', titleInput ? titleInput.value : '');
+            if (prefs.customGroqKey) {
+                fd.append('custom_api_key', prefs.customGroqKey);
+            }
+
+            try {
+                const res = await fetch(APP_URL + '/ai/generate', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: fd,
+                });
+                const data = await res.json();
+
+                loadingBox.style.display = 'none';
+                generateBtn.disabled     = false;
+                generateBtnText.textContent = 'Regenerate';
+
+                if (!data.success) {
+                    if (typeof window.xeonToast === 'function') {
+                        window.xeonToast('Xeon AI Error', data.message || 'Generation failed.', 'error', 6000);
+                    }
+                    return;
+                }
+
+                generatedTitle   = data.title || '';
+                generatedContent = data.content || '';
+
+                if (previewTitle) previewTitle.textContent = generatedTitle ? `Title: ${generatedTitle}` : 'Generated Output';
+                previewBox.style.display = 'block';
+                applyBtn.style.display   = 'inline-flex';
+                if (skipBtn) skipBtn.style.display = 'inline-flex';
+
+                if (editorTypewriter) editorTypewriter.cancel();
+                if (typeof window.runAiTypewriter === 'function') {
+                    editorTypewriter = window.runAiTypewriter(previewContent, generatedContent, {
+                        speed: 10,
+                        onComplete: () => {
+                            if (skipBtn) skipBtn.style.display = 'none';
+                        }
+                    });
+                    if (skipBtn) {
+                        skipBtn.onclick = () => {
+                            if (editorTypewriter) editorTypewriter.skip();
+                        };
+                    }
+                    previewContent.onclick = () => {
+                        if (editorTypewriter) editorTypewriter.skip();
+                    };
+                } else {
+                    if (previewContent) previewContent.textContent = generatedContent;
+                }
+
+                if (typeof window.xeonToast === 'function') {
+                    window.xeonToast('Generated with Xeon AI', 'Draft ready. Click "Insert into Note" to apply.', 'success');
+                }
+            } catch (err) {
+                loadingBox.style.display = 'none';
+                generateBtn.disabled     = false;
+                generateBtnText.textContent = 'Generate';
+                if (typeof window.xeonToast === 'function') {
+                    window.xeonToast('Connection Error', 'Could not reach Xeon AI server.', 'error');
+                }
+            }
+        });
+
+        // Copy button
+        copyBtn?.addEventListener('click', () => {
+            if (!generatedContent) return;
+            navigator.clipboard.writeText(generatedContent).then(() => {
+                if (typeof window.xeonToast === 'function') {
+                    window.xeonToast('Copied to Clipboard', 'AI output copied.', 'info', 2000);
+                }
+            });
+        });
+
+        // Insert / Apply to Note
+        applyBtn?.addEventListener('click', () => {
+            if (!generatedContent) return;
+
+            const mode = insertModeSel?.value || 'cursor';
+
+            // If title is available and we're either replacing or note title is untitled, update title
+            if (generatedTitle && titleInput) {
+                if (mode === 'replace' || !titleInput.value.trim() || titleInput.value.trim() === 'Untitled Note') {
+                    titleInput.value = generatedTitle;
+                }
+            }
+
+            if (currentMode === 'markdown') {
+                if (mode === 'replace') {
+                    noteMarkdown.value = generatedContent;
+                } else if (mode === 'append') {
+                    noteMarkdown.value = (noteMarkdown.value.trim() ? noteMarkdown.value.trim() + '\n\n' : '') + generatedContent;
+                } else {
+                    // cursor insert
+                    noteMarkdown.focus();
+                    const start = noteMarkdown.selectionStart || 0;
+                    const end   = noteMarkdown.selectionEnd   || 0;
+                    noteMarkdown.setRangeText(generatedContent, start, end, 'end');
+                }
+                renderMarkdownPreview();
+            } else {
+                // Rich Text (WYSIWYG)
+                const htmlToInsert = typeof marked !== 'undefined' ? marked.parse(generatedContent) : generatedContent;
+                if (mode === 'replace') {
+                    contentEl.innerHTML = htmlToInsert;
+                } else if (mode === 'append') {
+                    contentEl.innerHTML = (contentEl.innerHTML.trim() ? contentEl.innerHTML.trim() + '<br><br>' : '') + htmlToInsert;
+                } else {
+                    // cursor or append
+                    contentEl.focus();
+                    document.execCommand('insertHTML', false, htmlToInsert);
+                }
+            }
+
+            updateCounts();
+            scheduleAutoSave();
+            closeModal();
+
+            if (typeof window.xeonToast === 'function') {
+                window.xeonToast('Applied to Note', 'Xeon AI content has been inserted and auto-saved.', 'success');
+            }
+        });
+    }
+
+    /* ── Apply User Preferences to Editor ─────────────────────────── */
+
+    function applyUserPreferences() {
+        const prefs = window.getXeonPreferences ? window.getXeonPreferences() : {};
+
+        // Font size
+        if (prefs.fontSize) {
+            const size = prefs.fontSize + 'px';
+            if (contentEl) contentEl.style.fontSize = size;
+            if (noteMarkdown) noteMarkdown.style.fontSize = size;
+            if (markdownPreview) markdownPreview.style.fontSize = size;
+        }
+
+        // Font family
+        if (prefs.fontFamily) {
+            if (prefs.fontFamily === 'mono') {
+                const monoFont = "'JetBrains Mono', 'Fira Code', 'Consolas', monospace";
+                if (contentEl) contentEl.style.fontFamily = monoFont;
+            } else if (prefs.fontFamily === 'sans') {
+                const sansFont = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+                if (contentEl) contentEl.style.fontFamily = sansFont;
+                if (markdownPreview) markdownPreview.style.fontFamily = sansFont;
+            }
+        }
+    }
+
     /* ── Init ─────────────────────────────────────────────────────── */
+
+    applyUserPreferences();
+    initXeonAiEditor();
 
     const initialRaw = contentEl.innerHTML || '';
     const hasHtml = isHtmlString(initialRaw);
-    const savedMode = localStorage.getItem('xeon_editor_mode');
-    const savedView = localStorage.getItem('xeon_md_view') || 'split';
+    const prefs = window.getXeonPreferences ? window.getXeonPreferences() : {};
+    const savedMode = localStorage.getItem('xeon_editor_mode') || prefs.editorMode;
+    const savedView = localStorage.getItem('xeon_md_view') || prefs.mdView || 'split';
     currentMdView = savedView;
 
     // If content is raw markdown (e.g. non-empty text without HTML tags)
@@ -766,3 +1116,4 @@
     }
 
 })();
+

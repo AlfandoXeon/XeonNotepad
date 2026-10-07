@@ -1,22 +1,24 @@
 <?php
 $hideSidebar = true;
 ?>
-<div class="notes-page" id="notesPage">
+<div class="notes-page all-notes-page" id="allNotesPage">
 
-    <!-- ── Page header ──────────────────────────────────────────── -->
+    <!-- ── Page Header ──────────────────────────────────────────── -->
     <div class="notes-page-header" data-aos="fade-down" data-aos-duration="600">
         <div>
-            <h1 class="notes-page-title">Recent Notes</h1>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <a href="<?= APP_URL ?>/notes" class="btn-back-link" title="Back to Dashboard">
+                    <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_back</span>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            <h1 class="notes-page-title">All Notes</h1>
             <p class="notes-page-subtitle">
                 <?php $count = count($notes ?? []); ?>
-                Showing <?= $count ?> recent <?= $count === 1 ? 'note' : 'notes' ?> (<?= (int)($totalCount ?? $count) ?> total)
+                <span id="allNotesCountLabel"><?= $count ?> <?= $count === 1 ? 'note' : 'notes' ?></span> in your encrypted vault
             </p>
         </div>
         <div class="notes-page-header-actions">
-            <a href="<?= APP_URL ?>/listnote" class="btn btn-ghost" title="View all notes" id="allNotesHeaderBtn">
-                <span class="material-symbols-outlined text-sm" aria-hidden="true">format_list_bulleted</span>
-                <span>All Notes (<?= (int)($totalCount ?? $count) ?>)</span>
-            </a>
             <button type="button" class="btn btn-ai-sparkle" id="homeAiModalTriggerBtn" title="Create note with Xeon AI">
                 <span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
                 <span>Create with Xeon AI</span>
@@ -31,62 +33,36 @@ $hideSidebar = true;
         </div>
     </div>
 
-    <!-- ── Create your note with Xeon AI Hero Card ──────────────── -->
-    <section class="home-ai-hero-card" aria-labelledby="homeAiHeroTitle" data-aos="fade-up" data-aos-duration="650">
-        <div class="home-ai-card-glow" aria-hidden="true"></div>
-        <div class="home-ai-card-inner">
-            <div class="home-ai-badge">
-                <span class="home-ai-badge-dot"></span>
-                <span class="material-symbols-outlined text-xs" aria-hidden="true">auto_awesome</span>
-                <span>Xeon AI Intelligence</span>
-            </div>
-            <h2 id="homeAiHeroTitle" class="home-ai-title">Create your note with Xeon AI <span class="home-title-cursor" aria-hidden="true"></span></h2>
-            <p class="home-ai-desc" id="homeAiHeroDesc">Draft structured notes, meeting minutes, summaries, or checklists in seconds powered by Groq.</p>
-
-            <div class="home-ai-input-bar">
-                <span class="material-symbols-outlined home-ai-input-icon" aria-hidden="true">psychology</span>
-                <input
-                    type="text"
-                    id="homeAiQuickInput"
-                    class="home-ai-input"
-                    placeholder="Describe your note topic (e.g. Study summary on Operating Systems, or Sprint Agenda...)"
-                    autocomplete="off"
-                >
-                <button type="button" class="btn btn-primary home-ai-btn" id="homeAiQuickSubmitBtn">
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">auto_awesome</span>
-                    <span>Generate</span>
-                </button>
-            </div>
-
-            <div class="home-ai-templates-strip">
-                <span class="template-strip-label">Or pick a template:</span>
-                <button type="button" class="home-template-chip" data-template="meeting_notes">
-                    <span class="material-symbols-outlined text-xs">groups</span>
-                    <span>Meeting Notes</span>
-                </button>
-                <button type="button" class="home-template-chip" data-template="study_summary">
-                    <span class="material-symbols-outlined text-xs">school</span>
-                    <span>Study Summary</span>
-                </button>
-                <button type="button" class="home-template-chip" data-template="todo_list">
-                    <span class="material-symbols-outlined text-xs">checklist</span>
-                    <span>Action Checklist</span>
-                </button>
-                <button type="button" class="home-template-chip" data-template="project_plan">
-                    <span class="material-symbols-outlined text-xs">account_tree</span>
-                    <span>Project Plan</span>
-                </button>
-                <button type="button" class="home-template-chip" data-template="technical_doc">
-                    <span class="material-symbols-outlined text-xs">terminal</span>
-                    <span>Technical Doc</span>
-                </button>
-            </div>
+    <!-- ── Live Filter & Controls Bar ────────────────────────────── -->
+    <div class="all-notes-toolbar" data-aos="fade-up" data-aos-duration="600">
+        <div class="all-notes-search-box">
+            <span class="material-symbols-outlined text-muted" aria-hidden="true">search</span>
+            <input
+                type="text"
+                id="allNotesFilterInput"
+                class="all-notes-search-input"
+                placeholder="Filter notes by title or snippet content..."
+                autocomplete="off"
+            >
+            <button type="button" class="btn-clear-filter" id="clearFilterBtn" style="display:none;" title="Clear filter">
+                <span class="material-symbols-outlined text-xs">close</span>
+            </button>
         </div>
-    </section>
+
+        <div class="all-notes-sort-wrap">
+            <span class="material-symbols-outlined text-sm text-muted" aria-hidden="true">sort</span>
+            <select id="allNotesSortSelect" class="form-input form-input-sm" style="width:auto; padding:6px 12px;">
+                <option value="newest">Sort: Newest First</option>
+                <option value="oldest">Sort: Oldest First</option>
+                <option value="title_asc">Sort: Title (A-Z)</option>
+                <option value="title_desc">Sort: Title (Z-A)</option>
+            </select>
+        </div>
+    </div>
 
     <?php if (empty($notes)): ?>
     <!-- ── Empty state ─────────────────────────────────────────── -->
-    <div class="notes-empty-state">
+    <div class="notes-empty-state" data-aos="zoom-in">
         <img src="<?= APP_URL ?>/logo/NotepadIcon.png" alt="No notes yet" width="80" height="80">
         <h2>Your notepad is empty</h2>
         <p>Start writing your first note or let Xeon AI generate one for you.</p>
@@ -107,10 +83,19 @@ $hideSidebar = true;
 
     <?php else: ?>
     <!-- ── Note cards grid ─────────────────────────────────────── -->
-    <div class="notes-grid" id="notesGrid" role="list" aria-label="Your notes">
+    <div class="notes-grid" id="allNotesGrid" role="list" aria-label="Your notes">
 
         <?php foreach ($notes as $idx => $note): ?>
-        <article class="note-card" role="listitem" data-note-id="<?= (int)$note['id'] ?>" data-aos="fade-up" data-aos-delay="<?= min(350, $idx * 40) ?>">
+        <article
+            class="note-card"
+            role="listitem"
+            data-note-id="<?= (int)$note['id'] ?>"
+            data-title="<?= htmlspecialchars(mb_strtolower($note['title'])) ?>"
+            data-preview="<?= htmlspecialchars(mb_strtolower($note['preview'] ?? '')) ?>"
+            data-date="<?= strtotime($note['updated_at']) ?>"
+            data-aos="fade-up"
+            data-aos-delay="<?= min(350, $idx * 30) ?>"
+        >
 
             <div class="note-card-body">
                 <a href="<?= APP_URL ?>/note/<?= (int)$note['id'] ?>" class="note-card-title-link" tabindex="0">
@@ -169,24 +154,16 @@ $hideSidebar = true;
 
     </div><!-- /.notes-grid -->
 
-    <?php if (!empty($totalCount) && $totalCount > 10): ?>
-    <div class="notes-view-all-banner" data-aos="fade-up">
-        <div class="notes-view-all-info">
-            <span class="material-symbols-outlined text-primary">auto_stories</span>
-            <div>
-                <strong>Showing 10 most recent notes</strong>
-                <span>You have <?= (int)$totalCount ?> notes saved in total</span>
-            </div>
-        </div>
-        <a href="<?= APP_URL ?>/listnote" class="btn btn-primary">
-            <span>View All <?= (int)$totalCount ?> Notes</span>
-            <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
-        </a>
+    <!-- No search match banner -->
+    <div id="noMatchBanner" class="notes-empty-state" style="display:none; padding:40px 20px;">
+        <span class="material-symbols-outlined text-muted" style="font-size:48px;" aria-hidden="true">search_off</span>
+        <h2>No notes found</h2>
+        <p>No notes matched your search query. Try another keyword or clear the filter.</p>
     </div>
-    <?php endif; ?>
+
     <?php endif; ?>
 
-    <!-- ── Homepage Footer ──────────────────────────────────────── -->
+    <!-- ── Page Footer ─────────────────────────────────────────── -->
     <footer class="notes-footer">
         <p>Xeon Notepad - AlfandoXeon</p>
     </footer>
@@ -289,3 +266,78 @@ $hideSidebar = true;
     </div>
 </div>
 
+<!-- Inline search & sort script for /listnote -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var filterInput = document.getElementById('allNotesFilterInput');
+    var clearBtn    = document.getElementById('clearFilterBtn');
+    var sortSelect  = document.getElementById('allNotesSortSelect');
+    var grid        = document.getElementById('allNotesGrid');
+    var countLabel  = document.getElementById('allNotesCountLabel');
+    var noMatch     = document.getElementById('noMatchBanner');
+
+    if (!grid) return;
+
+    function applyFilterAndSort() {
+        var query = (filterInput ? filterInput.value.trim().toLowerCase() : '');
+        if (clearBtn) clearBtn.style.display = query ? 'inline-flex' : 'none';
+
+        var cards = Array.from(grid.querySelectorAll('.note-card'));
+        var visibleCount = 0;
+
+        cards.forEach(function(card) {
+            var title   = card.getAttribute('data-title') || '';
+            var preview = card.getAttribute('data-preview') || '';
+            var match   = !query || title.includes(query) || preview.includes(query);
+
+            if (match) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (countLabel) {
+            countLabel.textContent = visibleCount + (visibleCount === 1 ? ' note' : ' notes');
+        }
+
+        if (noMatch) {
+            noMatch.style.display = (visibleCount === 0 && cards.length > 0) ? 'flex' : 'none';
+        }
+
+        // Sorting
+        var sortVal = sortSelect ? sortSelect.value : 'newest';
+        cards.sort(function(a, b) {
+            if (sortVal === 'newest') {
+                return (parseInt(b.getAttribute('data-date') || '0', 10) - parseInt(a.getAttribute('data-date') || '0', 10));
+            } else if (sortVal === 'oldest') {
+                return (parseInt(a.getAttribute('data-date') || '0', 10) - parseInt(b.getAttribute('data-date') || '0', 10));
+            } else if (sortVal === 'title_asc') {
+                return (a.getAttribute('data-title') || '').localeCompare(b.getAttribute('data-title') || '');
+            } else if (sortVal === 'title_desc') {
+                return (b.getAttribute('data-title') || '').localeCompare(a.getAttribute('data-title') || '');
+            }
+            return 0;
+        });
+
+        cards.forEach(function(card) {
+            grid.appendChild(card);
+        });
+    }
+
+    if (filterInput) {
+        filterInput.addEventListener('input', applyFilterAndSort);
+    }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            filterInput.value = '';
+            applyFilterAndSort();
+            filterInput.focus();
+        });
+    }
+    if (sortSelect) {
+        sortSelect.addEventListener('change', applyFilterAndSort);
+    }
+});
+</script>

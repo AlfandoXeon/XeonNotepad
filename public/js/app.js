@@ -346,6 +346,376 @@
         });
     }
 
+    /* ── Xeon Preferences Helper ─────────────────────────────────── */
+
+    window.getXeonPreferences = function() {
+        var defaults = {
+            editorMode:    'rich',
+            mdView:        'split',
+            fontFamily:    'misans',
+            fontSize:      '16',
+            autoSaveSpeed: '350',
+            aiTone:        'balanced',
+            customGroqKey: ''
+        };
+        try {
+            var saved = JSON.parse(localStorage.getItem('xeon-preferences') || '{}');
+            return Object.assign(defaults, saved);
+        } catch (e) {
+            return defaults;
+        }
+    };
+
+    /* ── Reusable AI Typewriter Engine ────────────────────────────── */
+
+    window.runAiTypewriter = function(element, fullText, options) {
+        options = options || {};
+        var speed = options.speed || 10;
+        var chunkSize = options.chunkSize || (fullText.length > 1400 ? 5 : (fullText.length > 600 ? 3 : 1));
+        var onComplete = options.onComplete || function() {};
+
+        var index = 0;
+        var timer = null;
+        var isDone = false;
+
+        element.innerHTML = '';
+        var textNode = document.createTextNode('');
+        var caret = document.createElement('span');
+        caret.className = 'typewriter-caret';
+        caret.setAttribute('aria-hidden', 'true');
+        element.appendChild(textNode);
+        element.appendChild(caret);
+
+        function finish() {
+            if (isDone) return;
+            isDone = true;
+            if (timer) clearTimeout(timer);
+            textNode.nodeValue = fullText;
+            if (caret.parentNode) caret.remove();
+            element.scrollTop = element.scrollHeight;
+            onComplete();
+        }
+
+        function step() {
+            if (isDone) return;
+            index += chunkSize;
+            if (index >= fullText.length) {
+                finish();
+                return;
+            }
+
+            textNode.nodeValue = fullText.substring(0, index);
+            element.scrollTop = element.scrollHeight;
+
+            var lastChar = fullText.charAt(index - 1);
+            var delay = speed;
+            if (lastChar === '\n') delay = speed * 2.2;
+            else if (lastChar === '.' || lastChar === '!' || lastChar === '?') delay = speed * 1.8;
+
+            timer = setTimeout(step, delay);
+        }
+
+        step();
+
+        return {
+            skip: finish,
+            cancel: function() {
+                isDone = true;
+                if (timer) clearTimeout(timer);
+            }
+        };
+    };
+
+    /* ── Home Page AI Animated Typing Placeholder ─────────────────── */
+
+    function initHomeAiTypingPlaceholder() {
+        var input = document.getElementById('homeAiQuickInput');
+        if (!input) return;
+
+        var prompts = [
+            'Study summary: Operating Systems & Virtual Memory...',
+            'Meeting minutes: Sprint retrospective and key action items...',
+            'Project architecture: AES-256-GCM encrypted cloud notepad...',
+            'Action checklist: Launch prep & security vulnerability audit...',
+            'Technical documentation: REST endpoints and CSRF tokens...',
+            'Brainstorming: Future concepts of private local-first AI...'
+        ];
+
+        var pIndex = 0;
+        var cIndex = 0;
+        var isDeleting = false;
+        var isPaused = false;
+        var timer = null;
+
+        input.addEventListener('focus', function() {
+            isPaused = true;
+            if (timer) clearTimeout(timer);
+        });
+
+        input.addEventListener('blur', function() {
+            if (!input.value.trim()) {
+                isPaused = false;
+                timer = setTimeout(loop, 400);
+            }
+        });
+
+        function loop() {
+            if (isPaused || input.value.trim().length > 0) return;
+
+            var current = prompts[pIndex];
+            if (isDeleting) {
+                cIndex--;
+                input.setAttribute('placeholder', current.substring(0, cIndex));
+                if (cIndex === 0) {
+                    isDeleting = false;
+                    pIndex = (pIndex + 1) % prompts.length;
+                    timer = setTimeout(loop, 400);
+                    return;
+                }
+                timer = setTimeout(loop, 22);
+            } else {
+                cIndex++;
+                input.setAttribute('placeholder', current.substring(0, cIndex));
+                if (cIndex === current.length) {
+                    isDeleting = true;
+                    timer = setTimeout(loop, 2400);
+                    return;
+                }
+                timer = setTimeout(loop, 40);
+            }
+        }
+
+        timer = setTimeout(loop, 1200);
+    }
+
+    /* ── Home Xeon AI Generator Modal ─────────────────────────────── */
+
+    function initHomeAi() {
+        var modal           = document.getElementById('homeAiModal');
+        var triggerBtn      = document.getElementById('homeAiModalTriggerBtn');
+        var quickInput      = document.getElementById('homeAiQuickInput');
+        var quickSubmitBtn  = document.getElementById('homeAiQuickSubmitBtn');
+        var closeBtn        = document.getElementById('closeHomeAiModal');
+        var cancelBtn       = document.getElementById('cancelHomeAiModal');
+        var templateSelect  = document.getElementById('homeAiTemplateSelect');
+        var promptArea      = document.getElementById('homeAiPromptArea');
+        var generateBtn     = document.getElementById('homeAiGenerateBtn');
+        var generateBtnText = document.getElementById('homeAiGenerateBtnText');
+        var saveOpenBtn     = document.getElementById('homeAiSaveOpenBtn');
+        var loadingBox      = document.getElementById('homeAiLoading');
+        var previewBox      = document.getElementById('homeAiPreviewBox');
+        var previewTitle    = document.getElementById('homeAiPreviewTitle');
+        var previewContent  = document.getElementById('homeAiPreviewContent');
+        var skipBtn         = document.getElementById('homeAiSkipTypingBtn');
+        var homeTypewriter  = null;
+
+        if (!modal) return;
+
+        var selectedTone = 'balanced';
+        var generatedTitle = '';
+        var generatedContent = '';
+
+        var openModal = function(initialPrompt, initialTemplate) {
+            var prefs = window.getXeonPreferences();
+            selectedTone = prefs.aiTone || 'balanced';
+
+            // Sync tone chips
+            modal.querySelectorAll('.tone-chip').forEach(function(c) {
+                c.classList.toggle('active', c.getAttribute('data-tone') === selectedTone);
+            });
+
+            if (promptArea) promptArea.value = initialPrompt || '';
+            if (templateSelect) templateSelect.value = initialTemplate || '';
+
+            previewBox.style.display = 'none';
+            loadingBox.style.display = 'none';
+            saveOpenBtn.style.display = 'none';
+            generateBtnText.textContent = 'Generate Note';
+            generateBtn.disabled = false;
+
+            modal.classList.add('active');
+            if (promptArea && !initialPrompt) {
+                setTimeout(function() { promptArea.focus(); }, 100);
+            }
+        };
+
+        var closeModal = function() {
+            modal.classList.remove('active');
+        };
+
+        triggerBtn?.addEventListener('click', function() {
+            openModal('', '');
+        });
+
+        quickSubmitBtn?.addEventListener('click', function() {
+            var text = quickInput?.value.trim() || '';
+            openModal(text, '');
+            if (text) {
+                // Auto trigger generation if prompt provided
+                setTimeout(function() { generateBtn?.click(); }, 150);
+            }
+        });
+
+        quickInput?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                quickSubmitBtn?.click();
+            }
+        });
+
+        // Quick template chips on home card
+        document.querySelectorAll('.home-template-chip').forEach(function(chip) {
+            chip.addEventListener('click', function() {
+                var tmpl = chip.getAttribute('data-template') || '';
+                var text = quickInput?.value.trim() || '';
+                openModal(text, tmpl);
+                setTimeout(function() { generateBtn?.click(); }, 150);
+            });
+        });
+
+        closeBtn?.addEventListener('click', closeModal);
+        cancelBtn?.addEventListener('click', closeModal);
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeModal();
+        });
+
+        // Tone chips
+        modal.querySelectorAll('.tone-chip').forEach(function(chip) {
+            chip.addEventListener('click', function() {
+                modal.querySelectorAll('.tone-chip').forEach(function(c) { c.classList.remove('active'); });
+                chip.classList.add('active');
+                selectedTone = chip.getAttribute('data-tone') || 'balanced';
+            });
+        });
+
+        // Generate button action
+        generateBtn?.addEventListener('click', function() {
+            var prompt   = promptArea?.value.trim() || '';
+            var template = templateSelect?.value || '';
+            var prefs    = window.getXeonPreferences();
+            var appUrl   = document.querySelector('meta[name="app-url"]')?.content || '';
+            var csrf     = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+            if (!prompt && !template) {
+                if (typeof window.xeonToast === 'function') {
+                    window.xeonToast('Input Required', 'Please enter a prompt or choose a template.', 'warning');
+                }
+                return;
+            }
+
+            loadingBox.style.display = 'flex';
+            previewBox.style.display = 'none';
+            saveOpenBtn.style.display = 'none';
+            generateBtn.disabled = true;
+            generateBtnText.textContent = 'Generating...';
+
+            var formData = new FormData();
+            formData.append('csrf_token', csrf);
+            formData.append('action', template ? 'template' : 'generate');
+            formData.append('prompt', prompt);
+            formData.append('template_type', template);
+            formData.append('tone', selectedTone);
+            if (prefs.customGroqKey) {
+                formData.append('custom_api_key', prefs.customGroqKey);
+            }
+
+            fetch(appUrl + '/ai/generate', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                loadingBox.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtnText.textContent = 'Regenerate';
+
+                if (!data.success) {
+                    if (typeof window.xeonToast === 'function') {
+                        window.xeonToast('Xeon AI Error', data.message || 'Generation failed.', 'error', 6000);
+                    }
+                    return;
+                }
+
+                generatedTitle = data.title || 'AI Generated Note';
+                generatedContent = data.content || '';
+
+                previewTitle.textContent = generatedTitle;
+                previewBox.style.display = 'block';
+                saveOpenBtn.style.display = 'inline-flex';
+                if (skipBtn) skipBtn.style.display = 'inline-flex';
+
+                if (homeTypewriter) homeTypewriter.cancel();
+                homeTypewriter = window.runAiTypewriter(previewContent, generatedContent, {
+                    speed: 10,
+                    onComplete: function() {
+                        if (skipBtn) skipBtn.style.display = 'none';
+                    }
+                });
+
+                if (skipBtn) {
+                    skipBtn.onclick = function() {
+                        if (homeTypewriter) homeTypewriter.skip();
+                    };
+                }
+                previewContent.onclick = function() {
+                    if (homeTypewriter) homeTypewriter.skip();
+                };
+
+                if (typeof window.xeonToast === 'function') {
+                    window.xeonToast('Generated with Xeon AI', 'Your note draft is ready. Click "Save & Open Note" to start editing.', 'success');
+                }
+            })
+            .catch(function(err) {
+                loadingBox.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtnText.textContent = 'Generate Note';
+                if (typeof window.xeonToast === 'function') {
+                    window.xeonToast('Network Error', 'Failed to communicate with Xeon AI server.', 'error');
+                }
+                console.error(err);
+            });
+        });
+
+        // Save & Open Note action
+        saveOpenBtn?.addEventListener('click', function() {
+            var appUrl = document.querySelector('meta[name="app-url"]')?.content || '';
+            var csrf   = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+            if (!generatedContent) return;
+
+            saveOpenBtn.disabled = true;
+            saveOpenBtn.innerHTML = '<span class="material-symbols-outlined text-sm ai-sparkle-spin">sync</span> Saving...';
+
+            var formData = new FormData();
+            formData.append('csrf_token', csrf);
+            formData.append('title', generatedTitle || 'AI Generated Note');
+            formData.append('content', generatedContent);
+
+            fetch(appUrl + '/note/save', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success && data.noteId) {
+                    window.location.href = appUrl + '/note/' + data.noteId;
+                } else {
+                    saveOpenBtn.disabled = false;
+                    saveOpenBtn.innerHTML = '<span class="material-symbols-outlined text-sm">check</span> Save & Open Note';
+                    if (typeof window.xeonToast === 'function') {
+                        window.xeonToast('Save Failed', data.message || 'Could not save note.', 'error');
+                    }
+                }
+            })
+            .catch(function() {
+                saveOpenBtn.disabled = false;
+                saveOpenBtn.innerHTML = '<span class="material-symbols-outlined text-sm">check</span> Save & Open Note';
+            });
+        });
+    }
+
     /* ── Init ─────────────────────────────────────────────────────── */
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -359,6 +729,18 @@
         initLogout();
         initDeleteModal();
         initSidebarResizer();
+        initHomeAi();
+        initHomeAiTypingPlaceholder();
+
+        if (typeof AOS !== 'undefined') {
+            AOS.init({
+                duration: 600,
+                once: true,
+                offset: 40,
+                easing: 'ease-out-cubic'
+            });
+        }
     });
 
 })();
+

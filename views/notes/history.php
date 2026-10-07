@@ -14,7 +14,7 @@
 
     <?php if (empty($history)): ?>
         <div class="history-empty" role="status">
-            <span class="history-empty-icon" aria-hidden="true">📋</span>
+            <span class="material-symbols-outlined history-empty-icon" aria-hidden="true">history_toggle_off</span>
             <p>No changes recorded yet.</p>
             <p style="font-size:13px;margin-top:4px">Changes are logged automatically every time you save your note.</p>
         </div>

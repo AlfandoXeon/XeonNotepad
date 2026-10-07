@@ -7,6 +7,9 @@
     <meta name="description" content="Xeon Notepad — Your secure, encrypted online notepad. Access your notes from anywhere.">
     <meta name="csrf-token" content="<?= $csrfToken ?? '' ?>">
     <link rel="icon" type="image/png" href="<?= APP_URL ?>/logo/NotepadIcon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..0&display=swap">
     <link rel="stylesheet" href="<?= APP_URL ?>/public/css/style.css">
     <link rel="stylesheet" href="<?= APP_URL ?>/public/css/auth.css">
 </head>

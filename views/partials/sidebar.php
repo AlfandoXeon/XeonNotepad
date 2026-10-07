@@ -12,9 +12,10 @@
     </div>
 
     <!-- Note count label -->
-    <div class="sidebar-note-count" aria-live="polite">
+    <div class="sidebar-note-count" aria-live="polite" style="display:flex; justify-content:space-between; align-items:center;">
         <?php $cnt = count($notes ?? []); ?>
-        <?= $cnt ?> <?= $cnt === 1 ? 'note' : 'notes' ?>
+        <span><?= $cnt ?> <?= $cnt === 1 ? 'note' : 'notes' ?></span>
+        <a href="<?= APP_URL ?>/listnote" style="color:var(--primary); font-size:11px; text-decoration:none; font-weight:600;" title="View all notes">View All</a>
     </div>
 
     <!-- Scrollable note list -->
@@ -22,7 +23,7 @@
 
         <?php if (empty($notes)): ?>
             <div class="note-list-empty" role="listitem">
-                <span class="note-list-empty-icon" aria-hidden="true">📝</span>
+                <span class="material-symbols-outlined note-list-empty-icon" aria-hidden="true">description</span>
                 <p>No notes yet.<br>Create your first note!</p>
             </div>
         <?php else: ?>
